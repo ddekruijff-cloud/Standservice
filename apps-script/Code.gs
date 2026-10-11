@@ -117,6 +117,7 @@ function getOrder(token, id) {
 
 function createOrder(token, stands, omschrijving) {
   const role = role_(token);
+  if (isStaff_(role)) throw new Error('Alleen de klant dient opdrachten in.');
   const clean = cleanOrder_(stands, omschrijving);
   return withLock_(function () {
     const sheet = sheet_('Opdrachten', ORDER_HEADERS);

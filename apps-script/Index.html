@@ -163,6 +163,7 @@ function start() {
   $('view-login').hidden = true; $('view-app').hidden = false; $('who').hidden = false;
   $('who-role').textContent = session.name;
   $('list-title').textContent = staff() ? 'Binnengekomen opdrachten' : 'Mijn opdrachten';
+  $('btn-new').hidden = staff();
   mode = 'view'; selected = null; current = null;
   filter = staff() ? 'open' : 'alle';
   refresh();
