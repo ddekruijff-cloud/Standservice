@@ -161,20 +161,20 @@ function call(fn, ...args) {
 }
 
 // ---------- Inloggen ----------
-try { session = JSON.parse(sessionStorage.getItem('standservice') || 'null'); } catch (e) {}
+try { session = JSON.parse(localStorage.getItem('standservice') || 'null'); } catch (e) {}
 
 $('f-login').addEventListener('submit', (e) => {
   e.preventDefault();
   $('btn-login').disabled = true; $('login-error').hidden = true;
   google.script.run
-    .withSuccessHandler((s) => { session = s; try { sessionStorage.setItem('standservice', JSON.stringify(s)); } catch (e) {} $('in-code').value = ''; $('btn-login').disabled = false; start(); })
+    .withSuccessHandler((s) => { session = s; try { localStorage.setItem('standservice', JSON.stringify(s)); } catch (e) {} $('in-code').value = ''; $('btn-login').disabled = false; start(); })
     .withFailureHandler((err) => { $('login-error').textContent = String(err.message || err).replace(/^Error:\s*/, ''); $('login-error').hidden = false; $('btn-login').disabled = false; })
     .login($('in-code').value);
 });
 $('btn-out').onclick = () => { if (session) google.script.run.logout(session.token); endSession(); };
 
 function endSession() {
-  session = null; try { sessionStorage.removeItem('standservice'); } catch (e) {}
+  session = null; try { localStorage.removeItem('standservice'); } catch (e) {}
   $('view-login').hidden = false; $('view-app').hidden = true; $('who').hidden = true;
 }
 

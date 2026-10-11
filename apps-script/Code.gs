@@ -4,7 +4,8 @@
  * vastzit, of anders een Sheet die setup() zelf aanmaakt (het ID komt dan in eigenschap SHEET_ID).
  * Inlogcodes staan in de Script-eigenschappen (Projectinstellingen), niet in deze code:
  *   CODE_KLANT, CODE_TEAM, CODE_ADMIN   – de drie inlogcodes, elk anders (controleer met checkSetup)
- *   NTFY_TOPIC                           – optioneel: ntfy.sh-onderwerp voor een telefoonmelding bij een nieuwe opdracht
+ *   NTFY_TOPIC                           – optioneel: ntfy.sh-onderwerp voor het serviceteam (nieuwe opdracht, opmerking van de klant)
+ *   NTFY_TOPIC_KLANT                     – optioneel: ntfy.sh-onderwerp voor de klant (statuswijziging, opmerking van het team)
  */
 
 const ROLES = {
@@ -15,7 +16,8 @@ const ROLES = {
 const STATUSES = ['Nieuw', 'In behandeling', 'Afgerond', 'Geannuleerd'];
 const ORDER_HEADERS = ['id', 'stands', 'omschrijving', 'status', 'aangemaakt', 'gewijzigd'];
 const EVENT_HEADERS = ['id', 'opdracht', 'wie', 'soort', 'tekst', 'tijdstip'];
-const SESSION_SECONDS = 6 * 60 * 60;
+const SESSION_DAYS = 180; // zo lang blijft een apparaat ingelogd
+const CACHE_SECONDS = 6 * 60 * 60;
 const MAX_FAILED_LOGINS = 10;
 
 function doGet() {
@@ -49,8 +51,12 @@ function login(code) {
     cache.put('failed', String(failed + 1), 600);
     throw new Error('Deze code is niet bekend. Controleer de code en probeer het opnieuw.');
   }
-  const token = Utilities.getUuid();
-  cache.put('s:' + token, role, SESSION_SECONDS);
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  const session = { role: role, exp: Date.now() + SESSION_DAYS * 86400000, code: hash_(codes[role]) };
+  const props = PropertiesService.getScriptProperties();
+  cleanSessions_(props);
+  props.setProperty('sess:' + token, JSON.stringify(session));
+  cache.put('s:' + token, JSON.stringify(session), CACHE_SECONDS);
   return { token: token, role: role, name: ROLES[role].name };
 }
 
@@ -81,12 +87,38 @@ function checkSetup() {
 
 function logout(token) {
   CacheService.getScriptCache().remove('s:' + token);
+  PropertiesService.getScriptProperties().deleteProperty('sess:' + token);
+}
+
+// Een sessie blijft geldig tot hij verloopt, tot iemand uitlogt, of tot de code van dat account verandert.
+function hash_(text) {
+  return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(text)));
+}
+
+function cleanSessions_(props) {
+  const all = props.getProperties();
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf('sess:') !== 0) return;
+    try { if (JSON.parse(all[k]).exp < Date.now()) props.deleteProperty(k); } catch (e) { props.deleteProperty(k); }
+  });
 }
 
 function role_(token) {
-  const role = token && CacheService.getScriptCache().get('s:' + token);
-  if (!role) throw new Error('SESSIE_VERLOPEN');
-  return role;
+  if (!token) throw new Error('SESSIE_VERLOPEN');
+  const cache = CacheService.getScriptCache();
+  let raw = cache.get('s:' + token);
+  if (!raw) {
+    raw = PropertiesService.getScriptProperties().getProperty('sess:' + token);
+    if (raw) cache.put('s:' + token, raw, CACHE_SECONDS);
+  }
+  let session = null;
+  try { session = raw && JSON.parse(raw); } catch (e) {}
+  const codes = codes_();
+  if (!session || session.exp < Date.now() || !codes[session.role] || hash_(codes[session.role]) !== session.code) {
+    logout(token);
+    throw new Error('SESSIE_VERLOPEN');
+  }
+  return session.role;
 }
 
 const isStaff_ = function (role) { return role === 'team' || role === 'admin'; };
@@ -154,6 +186,7 @@ function setStatus(token, id, status) {
     found.sheet.getRange(found.row, 4).setValue(status);
     found.sheet.getRange(found.row, 6).setValue(new Date());
     addEvent_(Number(id), ROLES[role].name, 'status', 'Status gewijzigd naar ' + status);
+    notifyKlant_('Opdracht #' + id + ': ' + status, 'Stand ' + found.values[1] + ' staat nu op ' + status + '.');
   });
 }
 
@@ -165,6 +198,8 @@ function addRemark(token, id, tekst) {
     const found = findOrderRow_(id);
     found.sheet.getRange(found.row, 6).setValue(new Date());
     addEvent_(Number(id), ROLES[role].name, 'remark', tekst);
+    if (isStaff_(role)) notifyKlant_('Opmerking bij opdracht #' + id, tekst);
+    else notifyTeam_('Opmerking van de klant bij #' + id, tekst);
   });
 }
 
@@ -280,20 +315,26 @@ function withLock_(fn) {
   }
 }
 
-function notifyTeam_(title, message) {
-  const topic = PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC');
+// Telefoonmelding via ntfy.sh. Werkt alleen als de eigenschap (NTFY_TOPIC of NTFY_TOPIC_KLANT) is ingesteld.
+function notify_(prop, title, message) {
+  const topic = PropertiesService.getScriptProperties().getProperty(prop);
   if (!topic) return;
+  const headers = { Title: title, Tags: 'wrench' };
+  try { headers.Click = ScriptApp.getService().getUrl(); } catch (e) {}
   try {
-    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic), {
+    UrlFetchApp.fetch('https://ntfy.sh/' + encodeURIComponent(topic.trim()), {
       method: 'post',
-      payload: message,
-      headers: { Title: title },
+      payload: String(message).slice(0, 500),
+      headers: headers,
       muteHttpExceptions: true,
     });
   } catch (e) {
     console.warn('Telefoonmelding niet verstuurd: ' + e);
   }
 }
+
+function notifyTeam_(title, message) { notify_('NTFY_TOPIC', title, message); }
+function notifyKlant_(title, message) { notify_('NTFY_TOPIC_KLANT', title, message); }
 
 // Zorgt dat Sheets tekst als tekst bewaart: geen formules (=, +, -, @) en geen standnummers die een getal worden.
 function text_(value) {
