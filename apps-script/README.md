@@ -9,14 +9,14 @@ Dezelfde app als de Next.js-versie, maar volledig in je eigen Google-account: ee
 3. Vervang de inhoud van `Code.gs` door [Code.gs](Code.gs).
 4. Klik op **+** naast Bestanden, kies **HTML**, noem het bestand `Index` en plak [Index.html](Index.html) erin.
 5. Ga naar **Projectinstellingen** (tandwiel) en voeg onder **Script-eigenschappen** toe:
-   | Eigenschap | Waarde |
-   | --- | --- |
-   | `CODE_KLANT` | inlogcode van de klant |
-   | `CODE_TEAM` | inlogcode van het serviceteam |
-   | `CODE_ADMIN` | inlogcode van de beheerder |
-   | `NTFY_TOPIC` | optioneel, zie Telefoonmelding |
+   | Eigenschap | Waarde | Voor wie |
+   | --- | --- | --- |
+   | `CODE_KLANT` | bijvoorbeeld `4821` | de klant |
+   | `CODE_TEAM` | bijvoorbeeld `8756` | het serviceteam |
+   | `CODE_ADMIN` | bijvoorbeeld `3390` | de beheerder |
+   | `NTFY_TOPIC` | optioneel, zie Telefoonmelding | |
 
-   Geef elk account een andere code.
+   Vul bij Waarde alleen de code zelf in, zonder andere tekst. Geef elk account een andere code.
 6. Kies bovenin de functie `setup` en klik op **Uitvoeren**. Geef de gevraagde toestemming. De tabbladen "Opdrachten" en "Tijdlijn" worden aangemaakt.
 7. Klik op **Implementeren > Nieuwe implementatie**, kies type **Web-app**, zet **Uitvoeren als** op *Ikzelf* en **Wie heeft toegang** op *Iedereen*. Klik op **Implementeren**.
 8. Kopieer de web-app-URL. Dat is het adres van de app; deel het met de klant en het team.
