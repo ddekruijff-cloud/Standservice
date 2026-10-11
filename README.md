@@ -1,5 +1,7 @@
 # Standservice
 
+> Er zijn twee versies. De **Google Apps Script-versie** in [`apps-script/`](apps-script/) is de gekozen versie: een Google Sheet als database, zonder extra accounts. De Next.js-versie hieronder blijft bewaard als alternatief.
+
 Serviceportaal voor beursstands. De klant dient opdrachten in per standnummer en volgt de status. Het serviceteam ontvangt de opdrachten, past de status aan en reageert met opmerkingen.
 
 ## Rollen
