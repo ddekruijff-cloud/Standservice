@@ -14,12 +14,8 @@ export default function LoginPage() {
         </div>
         <form action={action}>
           <div className="field">
-            <label htmlFor="email">E-mailadres</label>
-            <input id="email" name="email" type="email" autoComplete="email" required />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Wachtwoord</label>
-            <input id="password" name="password" type="password" autoComplete="current-password" required />
+            <label htmlFor="code">Inlogcode</label>
+            <input id="code" name="code" type="password" inputMode="numeric" autoComplete="current-password" required />
           </div>
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit" disabled={pending}>
