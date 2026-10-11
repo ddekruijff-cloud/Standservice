@@ -14,7 +14,7 @@ Dezelfde app als de Next.js-versie, maar volledig in je eigen Google-account: ee
    | `CODE_KLANT` | bijvoorbeeld `4821` | de klant |
    | `CODE_TEAM` | bijvoorbeeld `8756` | het serviceteam |
    | `CODE_ADMIN` | bijvoorbeeld `3390` | de beheerder |
-   | `NTFY_TOPIC` | optioneel, zie Telefoonmelding | |
+   | `NTFY_TOPIC` | bijvoorbeeld `standservice-team-8f3k2q9x` (optioneel, zie Telefoonmeldingen) | het serviceteam |
 
    Vul bij Waarde alleen de code zelf in, zonder andere tekst. Geef elk account een andere code.
 6. Kies bovenin de functie `setup` en klik op **Uitvoeren**. Geef de gevraagde toestemming. De tabbladen "Opdrachten" en "Tijdlijn" worden aangemaakt.
