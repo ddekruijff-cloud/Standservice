@@ -215,19 +215,29 @@ async function openNotify() {
   let setup = null;
   try { setup = await call('getNotifySetup', session.token); } catch (e) { $('notify-modal').hidden = true; return; }
   if (!setup || !setup.topic) {
-    $('notify-body').innerHTML = '<p class="text">Meldingen zijn nog niet ingesteld. Vraag de beheerder om de Script-eigenschap NTFY_TOPIC in te vullen.</p>';
+    $('notify-body').innerHTML = setup && setup.invalid
+      ? '<p class="text">Het onderwerp in de Script-eigenschap NTFY_TOPIC klopt niet. Gebruik alleen letters, cijfers, - en _, zonder spaties.</p>'
+      : '<p class="text">Meldingen zijn nog niet ingesteld. Vraag de beheerder om de Script-eigenschap NTFY_TOPIC in te vullen.</p>';
     return;
   }
-  const t = esc(setup.topic);
-  $('notify-body').innerHTML = `<ol>
-    <li>Installeer de gratis app <b>ntfy</b>:
-      <div class="stores"><a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" rel="noopener">iPhone</a>
-      <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Android</a></div></li>
-    <li>Open ntfy, tik op <b>+</b> en vul dit onderwerp in:
-      <div class="topic" id="notify-topic">${t}</div>
-      <div class="btns" style="margin-top:8px"><button class="btn ghost small" id="btn-copy-topic">Kopieer onderwerp</button></div></li>
-    <li>Tik op <b>Abonneren</b>. Klaar: vanaf nu krijg je een melding bij elke nieuwe opdracht.</li>
-  </ol>`;
+  // Opgebouwd met losse elementen, zodat het onderwerp nooit als HTML gelezen wordt.
+  const body = $('notify-body'); body.innerHTML = '';
+  const el = (tag, text, cls) => { const e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; };
+  const ol = el('ol');
+  const li1 = el('li', 'Installeer de gratis app ntfy:');
+  const stores = el('div', '', 'stores');
+  [['iPhone', 'https://apps.apple.com/app/ntfy/id1625396347'], ['Android', 'https://play.google.com/store/apps/details?id=io.heckel.ntfy']].forEach(([label, url]) => {
+    const a = el('a', label); a.href = url; a.target = '_blank'; a.rel = 'noopener'; stores.appendChild(a);
+  });
+  li1.appendChild(stores);
+  const li2 = el('li', 'Open ntfy, tik op + en vul dit onderwerp in:');
+  const topicBox = el('div', setup.topic, 'topic'); topicBox.id = 'notify-topic';
+  const copyRow = el('div', '', 'btns'); copyRow.style.marginTop = '8px';
+  const copyBtn = el('button', 'Kopieer onderwerp', 'btn ghost small'); copyBtn.id = 'btn-copy-topic'; copyBtn.type = 'button';
+  copyRow.appendChild(copyBtn); li2.appendChild(topicBox); li2.appendChild(copyRow);
+  const li3 = el('li', 'Tik op Abonneren. Klaar: vanaf nu krijg je een melding bij elke nieuwe opdracht.');
+  [li1, li2, li3].forEach((li) => ol.appendChild(li));
+  body.appendChild(ol);
   $('btn-copy-topic').onclick = async () => {
     try { await navigator.clipboard.writeText(setup.topic); toast('Onderwerp gekopieerd'); }
     catch (e) { const r = document.createRange(); r.selectNodeContents($('notify-topic')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast('Kopieer de geselecteerde tekst'); }

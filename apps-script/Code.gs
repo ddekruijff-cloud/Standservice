@@ -128,8 +128,9 @@ const isStaff_ = function (role) { return role === 'team' || role === 'admin'; }
 /** Geeft het ntfy-onderwerp van het team terug, alleen aan het serviceteam en de beheerder. */
 function getNotifySetup(token) {
   if (!isStaff_(role_(token))) return null;
-  const topic = PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC');
-  return { topic: topic ? topic.trim() : '' };
+  const topic = (PropertiesService.getScriptProperties().getProperty('NTFY_TOPIC') || '').trim();
+  // Een ntfy-onderwerp bestaat alleen uit letters, cijfers, - en _.
+  return { topic: /^[A-Za-z0-9_-]{1,64}$/.test(topic) ? topic : '', invalid: !!topic && !/^[A-Za-z0-9_-]{1,64}$/.test(topic) };
 }
 
 // ---------- Lezen ----------
