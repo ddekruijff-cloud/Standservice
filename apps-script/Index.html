@@ -198,11 +198,48 @@ function start() {
   $('list-title').textContent = staff() ? 'Binnengekomen opdrachten' : 'Mijn opdrachten';
   $('btn-new').hidden = staff();
   mode = 'view'; selected = null; current = null; showDetail(false);
-  filter = staff() ? 'open' : 'alle';
+  filter = staff() ? 'open' : 'alle'; knownIds = null;
   $('btn-notify').hidden = !staff();
   refresh();
   if (staff()) maybeAskNotify();
 }
+
+// ---------- Melding in de app bij een nieuwe opdracht ----------
+// Werkt zolang de app openstaat (ook op de achtergrond in een tabblad): geluid, melding en een knipperende tabtitel.
+let knownIds = null, audioCtx = null, titleTimer = null;
+function beep() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25].forEach((t) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.25, audioCtx.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + t + 0.2);
+      o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.2);
+    });
+  } catch (e) {}
+}
+function flashTitle(text) {
+  clearInterval(titleTimer); let on = false;
+  titleTimer = setInterval(() => { document.title = (on = !on) ? text : 'Standservice'; }, 1000);
+  const stop = () => { clearInterval(titleTimer); document.title = 'Standservice'; window.removeEventListener('focus', stop); document.removeEventListener('click', stop); };
+  window.addEventListener('focus', stop); document.addEventListener('click', stop);
+}
+function alertNewOrders() {
+  if (!staff()) return;
+  const ids = new Set(orders.map((o) => o.id));
+  if (knownIds) {
+    const fresh = orders.filter((o) => !knownIds.has(o.id) && o.status === 'Nieuw');
+    if (fresh.length) {
+      beep();
+      toast(fresh.length === 1 ? 'Nieuwe opdracht: stand ' + fresh[0].stands.join(', ') : fresh.length + ' nieuwe opdrachten');
+      flashTitle('(' + fresh.length + ') Nieuwe opdracht');
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    }
+  }
+  knownIds = ids;
+}
+// Geluid mag pas na een tik in de pagina; zet het geluid alvast klaar bij de eerste tik.
+document.addEventListener('click', () => { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {} }, { once: true });
 
 // ---------- Meldingen-popup voor het team ----------
 const NOTIFY_KEY = 'standservice-meldingen';
@@ -243,7 +280,11 @@ async function openNotify() {
     catch (e) { const r = document.createRange(); r.selectNodeContents($('notify-topic')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast('Kopieer de geselecteerde tekst'); }
   };
 }
-function maybeAskNotify() { if (!storeGet(NOTIFY_KEY)) openNotify(); }
+// De popup verschijnt alleen als ntfy is ingesteld; e-mail en de melding in de app werken zonder app op de telefoon.
+async function maybeAskNotify() {
+  if (storeGet(NOTIFY_KEY)) return;
+  try { const setup = await call('getNotifySetup', session.token); if (setup && setup.topic) openNotify(); } catch (e) {}
+}
 $('btn-notify').onclick = openNotify;
 $('btn-notify-done').onclick = () => { storeSet(NOTIFY_KEY, 'aan'); $('notify-modal').hidden = true; };
 $('btn-notify-later').onclick = () => { $('notify-modal').hidden = true; };
@@ -253,6 +294,7 @@ $('notify-modal').addEventListener('click', (e) => { if (e.target === $('notify-
 async function refresh() {
   if (!session) return;
   orders = await call('listOrders', session.token);
+  alertNewOrders();
   const vis = visible();
   if (!vis.some((o) => o.id === selected)) selected = vis.length ? vis[0].id : null;
   renderList();

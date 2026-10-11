@@ -4,6 +4,7 @@
  * vastzit, of anders een Sheet die setup() zelf aanmaakt (het ID komt dan in eigenschap SHEET_ID).
  * Inlogcodes staan in de Script-eigenschappen (Projectinstellingen), niet in deze code:
  *   CODE_KLANT, CODE_TEAM, CODE_ADMIN   – de drie inlogcodes, elk anders (controleer met checkSetup)
+ *   TEAM_EMAIL                           – optioneel: e-mailadres(sen) van het team voor een e-mail bij een nieuwe opdracht
  *   NTFY_TOPIC                           – optioneel: ntfy.sh-onderwerp voor het serviceteam (nieuwe opdracht, opmerking van de klant)
  *   NTFY_TOPIC_KLANT                     – optioneel: ntfy.sh-onderwerp voor de klant (statuswijziging, opmerking van het team)
  */
@@ -343,7 +344,28 @@ function notify_(prop, title, message) {
   }
 }
 
-function notifyTeam_(title, message) { notify_('NTFY_TOPIC', title, message); }
+function notifyTeam_(title, message) {
+  notify_('NTFY_TOPIC', title, message);
+  mailTeam_(title, message);
+}
+
+// E-mail naar het team, als eigenschap TEAM_EMAIL is ingesteld (meerdere adressen scheiden met een komma).
+function mailTeam_(title, message) {
+  const to = (PropertiesService.getScriptProperties().getProperty('TEAM_EMAIL') || '').trim();
+  if (!to) return;
+  let url = '';
+  try { url = ScriptApp.getService().getUrl(); } catch (e) {}
+  try {
+    MailApp.sendEmail({
+      to: to,
+      subject: 'Standservice: ' + title,
+      body: message + (url ? '\n\nOpen Standservice: ' + url : ''),
+      name: 'Standservice',
+    });
+  } catch (e) {
+    console.warn('E-mail niet verstuurd: ' + e);
+  }
+}
 function notifyKlant_(title, message) { notify_('NTFY_TOPIC_KLANT', title, message); }
 
 // Zorgt dat Sheets tekst als tekst bewaart: geen formules (=, +, -, @) en geen standnummers die een getal worden.

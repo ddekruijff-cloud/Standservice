@@ -28,7 +28,12 @@ Na een wijziging in de code kies je **Implementeren > Implementaties beheren**, 
 1. Kies in de editor de functie `checkSetup` en klik op **Uitvoeren**. Het logboek laat zien welke codes zijn ingesteld en zet de teller voor mislukte pogingen op nul.
 2. Heb je de code in de editor aangepast? Kies dan **Implementeren > Implementaties beheren**, potloodje, versie **Nieuwe versie**. Anders draait de web-app nog op de oude code.
 
-## Telefoonmeldingen
+## Meldingen zonder app
+
+- **In de app:** staat Standservice open bij het serviceteam (ook in een tabblad op de achtergrond), dan klinkt er bij een nieuwe opdracht een geluid, verschijnt er een melding en knippert de tabtitel. Daarvoor hoef je niets in te stellen.
+- **Per e-mail:** zet in de Script-eigenschap `TEAM_EMAIL` het e-mailadres van het team (meerdere adressen scheiden met een komma). Bij elke nieuwe opdracht en elke opmerking van de klant komt er dan een e-mail met een link naar de app. Na het toevoegen vraagt Google één keer toestemming om e-mail te versturen: voer daarvoor `setup` nog een keer uit.
+
+## Telefoonmeldingen via de ntfy-app (optioneel)
 
 Meldingen lopen via de gratis app **ntfy** (App Store en Google Play). Je hebt geen account nodig.
 
