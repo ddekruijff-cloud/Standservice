@@ -2,7 +2,7 @@
  * Standservice in Google Apps Script.
  * Database: de Google Sheet waar dit script aan vastzit, met de tabbladen "Opdrachten" en "Tijdlijn".
  * Inlogcodes staan in de Script-eigenschappen (Projectinstellingen), niet in deze code:
- *   CODE_KLANT, CODE_TEAM, CODE_ADMIN   – de drie inlogcodes, elk anders
+ *   CODE_KLANT, CODE_TEAM, CODE_ADMIN   – de drie inlogcodes, elk anders (controleer met checkSetup)
  *   NTFY_TOPIC                           – optioneel: ntfy.sh-onderwerp voor een telefoonmelding bij een nieuwe opdracht
  */
 
@@ -38,11 +38,11 @@ function login(code) {
   if (failed >= MAX_FAILED_LOGINS) {
     throw new Error('Te veel mislukte pogingen. Probeer het over tien minuten opnieuw.');
   }
-  const props = PropertiesService.getScriptProperties();
-  const role = Object.keys(ROLES).find(function (r) {
-    const expected = props.getProperty(ROLES[r].prop);
-    return expected && String(code).trim() === expected;
-  });
+  const codes = codes_();
+  if (!Object.keys(codes).length) {
+    throw new Error('Er zijn nog geen inlogcodes ingesteld. Zet CODE_KLANT, CODE_TEAM en CODE_ADMIN in de Script-eigenschappen.');
+  }
+  const role = Object.keys(codes).find(function (r) { return String(code).trim() === codes[r]; });
   if (!role) {
     cache.put('failed', String(failed + 1), 600);
     throw new Error('Deze code is niet bekend. Controleer de code en probeer het opnieuw.');
@@ -50,6 +50,31 @@ function login(code) {
   const token = Utilities.getUuid();
   cache.put('s:' + token, role, SESSION_SECONDS);
   return { token: token, role: role, name: ROLES[role].name };
+}
+
+// Leest de codes uit de Script-eigenschappen. Spaties en hoofd/kleine letters in de naam maken niet uit.
+function codes_() {
+  const all = PropertiesService.getScriptProperties().getProperties();
+  const byName = {};
+  Object.keys(all).forEach(function (k) { byName[k.trim().toUpperCase()] = String(all[k]).trim(); });
+  const codes = {};
+  Object.keys(ROLES).forEach(function (r) {
+    const value = byName[ROLES[r].prop];
+    if (value) codes[r] = value;
+  });
+  return codes;
+}
+
+/** Controle vanuit de editor: kies checkSetup en klik op Uitvoeren, en kijk in het uitvoeringslogboek. */
+function checkSetup() {
+  const codes = codes_();
+  Object.keys(ROLES).forEach(function (r) {
+    console.log(ROLES[r].prop + ': ' + (codes[r] ? 'ingesteld (' + codes[r].length + ' tekens)' : 'ONTBREEKT'));
+  });
+  const values = Object.keys(codes).map(function (r) { return codes[r]; });
+  if (new Set(values).size !== values.length) console.log('Let op: twee accounts hebben dezelfde code.');
+  CacheService.getScriptCache().remove('failed');
+  console.log('Teller voor mislukte inlogpogingen is op nul gezet.');
 }
 
 function logout(token) {

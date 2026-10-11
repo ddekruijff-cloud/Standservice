@@ -23,6 +23,11 @@ Dezelfde app als de Next.js-versie, maar volledig in je eigen Google-account: ee
 
 Na een wijziging in de code kies je **Implementeren > Implementaties beheren**, potloodje, versie **Nieuwe versie**. De URL blijft dan hetzelfde.
 
+## Code werkt niet?
+
+1. Kies in de editor de functie `checkSetup` en klik op **Uitvoeren**. Het logboek laat zien welke codes zijn ingesteld en zet de teller voor mislukte pogingen op nul.
+2. Heb je de code in de editor aangepast? Kies dan **Implementeren > Implementaties beheren**, potloodje, versie **Nieuwe versie**. Anders draait de web-app nog op de oude code.
+
 ## Telefoonmelding bij een nieuwe opdracht
 
 Installeer de gratis app **ntfy** op je telefoon, abonneer je op een lang, moeilijk te raden onderwerp (bijvoorbeeld `standservice-8f3k2q9x`) en zet datzelfde onderwerp in de eigenschap `NTFY_TOPIC`. Bij elke nieuwe opdracht krijgt het team dan een melding.
