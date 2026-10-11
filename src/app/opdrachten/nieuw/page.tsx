@@ -4,10 +4,10 @@ import { OrderForm } from "../OrderForm";
 import { createOrder } from "../actions";
 
 export default async function NewOrderPage() {
-  const { user, profile } = await requireProfile();
+  const { profile } = await requireProfile();
   return (
     <main className="wrap">
-      <Header profile={profile} email={user.email} />
+      <Header profile={profile} />
       <section className="panel" style={{ maxWidth: 640 }}>
         <OrderForm action={createOrder} />
       </section>

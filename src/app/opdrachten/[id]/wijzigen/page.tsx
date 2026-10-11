@@ -7,7 +7,7 @@ import { updateOrder } from "../../actions";
 
 export default async function EditOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user, profile } = await requireProfile();
+  const { supabase, profile } = await requireProfile();
   const { data: order } = await supabase
     .from("orders")
     .select("id, stands, description, status, created_at, updated_at")
@@ -17,7 +17,7 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
   if (order.status !== "nieuw") redirect(`/opdrachten?id=${order.id}`);
   return (
     <main className="wrap">
-      <Header profile={profile} email={user.email} />
+      <Header profile={profile} />
       <section className="panel" style={{ maxWidth: 640 }}>
         <OrderForm action={updateOrder.bind(null, order.id)} order={order} />
       </section>

@@ -4,7 +4,7 @@ import type { Profile } from "@/lib/types";
 
 const ROLE_LABEL = { klant: "Klant", team: "Serviceteam", admin: "Beheerder" } as const;
 
-export function Header({ profile, email }: { profile: Profile; email?: string }) {
+export function Header({ profile }: { profile: Profile }) {
   return (
     <header className="top">
       <Link href="/opdrachten" className="brand">
@@ -12,7 +12,6 @@ export function Header({ profile, email }: { profile: Profile; email?: string })
       </Link>
       <div className="who">
         <span className="role">{ROLE_LABEL[profile.role]}</span>
-        <b>{email ?? profile.display_name}</b>
         <form action={logout}>
           <button className="btn ghost small" type="submit">Uitloggen</button>
         </form>

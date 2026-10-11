@@ -9,7 +9,7 @@ type Search = Promise<{ status?: string; id?: string }>;
 
 export default async function OrdersPage({ searchParams }: { searchParams: Search }) {
   const { status, id } = await searchParams;
-  const { supabase, user, profile, isStaff } = await requireProfile();
+  const { supabase, profile, isStaff } = await requireProfile();
 
   const { data: orders = [] } = await supabase
     .from("orders")
@@ -42,7 +42,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Searc
   return (
     <main className="wrap">
       <LiveRefresh />
-      <Header profile={profile} email={user.email} />
+      <Header profile={profile} />
 
       <nav className="counts" aria-label="Filter op status">
         <Link className="count" aria-current={!filter} href={href({})}>
