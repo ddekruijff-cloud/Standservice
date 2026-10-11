@@ -59,7 +59,7 @@ textarea{min-height:88px;resize:vertical}
 .pill{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .s-0{background:var(--new-bg);color:var(--new-fg)} .s-1{background:var(--busy-bg);color:var(--busy-fg)}
 .s-2{background:var(--done-bg);color:var(--done-fg)} .s-3{background:var(--cxl-bg);color:var(--cxl-fg)}
-.counts{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.counts{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 @media (max-width:620px){.counts{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .count{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;background:var(--surface);text-align:left;font:inherit;color:inherit;min-width:0}
 .count[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
@@ -114,13 +114,16 @@ textarea{min-height:88px;resize:vertical}
 
 <script>
 const STATUSES = ['Nieuw', 'In behandeling', 'Afgerond', 'Geannuleerd'];
-let session = null, orders = [], filter = null, selected = null, current = null, mode = 'view', confirmDel = false;
+let session = null, orders = [], filter = 'alle', selected = null, current = null, mode = 'view', confirmDel = false;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (t) => new Date(t).toLocaleString('nl-NL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const pill = (s) => `<span class="pill s-${STATUSES.indexOf(s)}">${esc(s)}</span>`;
 const standsHtml = (a) => `<div class="stands">${a.map((s) => `<span class="stand">${esc(s)}</span>`).join('')}</div>`;
 const staff = () => session && session.role !== 'klant';
+const OPEN = ['Nieuw', 'In behandeling'];
+const matches = (o, f) => f === 'alle' || (f === 'open' ? OPEN.includes(o.status) : o.status === f);
+const visible = () => orders.filter((o) => matches(o, filter));
 
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 3000); }
 
@@ -161,6 +164,7 @@ function start() {
   $('who-role').textContent = session.name;
   $('list-title').textContent = staff() ? 'Binnengekomen opdrachten' : 'Mijn opdrachten';
   mode = 'view'; selected = null; current = null;
+  filter = staff() ? 'open' : 'alle';
   refresh();
 }
 
@@ -168,7 +172,8 @@ function start() {
 async function refresh() {
   if (!session) return;
   orders = await call('listOrders', session.token);
-  if (selected == null && orders.length) selected = orders[0].id;
+  const vis = visible();
+  if (!vis.some((o) => o.id === selected)) selected = vis.length ? vis[0].id : null;
   renderList();
   if (mode === 'view') await loadDetail();
 }
@@ -184,11 +189,12 @@ setInterval(() => { if (session && mode === 'view' && !document.hidden && !docum
 
 // ---------- Lijst ----------
 function renderList() {
-  const counts = [['alle', 'Alle', orders.length], ...STATUSES.map((s) => [s, s, orders.filter((o) => o.status === s).length])];
-  $('counts').innerHTML = counts.map(([k, l, n]) => `<button class="count" aria-pressed="${(filter || 'alle') === k}" data-f="${esc(k)}"><strong>${n}</strong><span>${esc(l)}</span></button>`).join('');
-  $('counts').querySelectorAll('button').forEach((b) => (b.onclick = () => { filter = b.dataset.f === 'alle' ? null : b.dataset.f; renderList(); }));
-  $('filter-label').textContent = (filter ? 'Status: ' + filter : 'Alle opdrachten') + ', laatst gewijzigd bovenaan.';
-  const list = orders.filter((o) => !filter || o.status === filter);
+  const counts = [['open', 'Open'], ...STATUSES.map((s) => [s, s]), ['alle', 'Alle']]
+    .map(([k, l]) => [k, l, orders.filter((o) => matches(o, k)).length]);
+  $('counts').innerHTML = counts.map(([k, l, n]) => `<button class="count" aria-pressed="${filter === k}" data-f="${esc(k)}"><strong>${n}</strong><span>${esc(l)}</span></button>`).join('');
+  $('counts').querySelectorAll('button').forEach((b) => (b.onclick = () => { filter = b.dataset.f; mode = 'view'; refresh(); }));
+  $('filter-label').textContent = (filter === 'alle' ? 'Alle opdrachten' : filter === 'open' ? 'Open opdrachten, afgeronde staan onder Afgerond' : 'Status: ' + filter) + '. Laatst gewijzigd bovenaan.';
+  const list = visible();
   $('list').innerHTML = list.length
     ? list.map((o) => `<li><button class="item ${o.id === selected && mode === 'view' ? 'selected' : ''}" data-id="${o.id}">
         <div class="row">${standsHtml(o.stands)}${pill(o.status)}</div>
@@ -220,7 +226,7 @@ function renderForm(o) {
     e.preventDefault(); $('btn-save').disabled = true;
     try {
       if (o) { await call('updateOrder', session.token, o.id, $('in-stands').value, $('in-desc').value); toast('Wijziging opgeslagen'); }
-      else { selected = await call('createOrder', session.token, $('in-stands').value, $('in-desc').value); toast('Opdracht ingediend'); filter = null; }
+      else { selected = await call('createOrder', session.token, $('in-stands').value, $('in-desc').value); toast('Opdracht ingediend'); filter = staff() ? 'open' : 'alle'; }
       mode = 'view'; await refresh();
     } catch (err) { $('btn-save').disabled = false; }
   });
@@ -238,6 +244,7 @@ function renderDetail() {
     <div><span class="lbl">Omschrijving</span><p class="text">${esc(o.omschrijving)}</p>
       ${isKlant && o.status === 'Nieuw' ? '<div class="btns" style="margin-top:10px"><button class="btn ghost small" id="btn-edit">Opdracht wijzigen</button></div>' : ''}
       ${isKlant && o.status !== 'Nieuw' ? '<p class="hint">Wijzigen kan alleen zolang de status Nieuw is. Verwijderen kan niet.</p>' : ''}</div>
+    ${staff() && OPEN.includes(o.status) ? '<div><button class="btn" id="btn-done">Afronden</button><p class="hint">De opdracht gaat naar Afgerond en verdwijnt uit je open opdrachten.</p></div>' : ''}
     ${staff() ? `<div><span class="lbl">Status</span><div class="statusset">${STATUSES.map((s, i) =>
       `<button class="${o.status === s ? 's-' + i : ''}" aria-pressed="${o.status === s}" data-s="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>` : ''}
     <form id="f-remark"><div class="field"><label for="in-remark">Opmerking toevoegen</label>
@@ -255,6 +262,10 @@ function renderDetail() {
   </div>`;
 
   const after = async (msg) => { if (msg) toast(msg); await refresh(); };
+  if ($('btn-done')) $('btn-done').onclick = async () => {
+    $('btn-done').disabled = true;
+    try { await call('setStatus', session.token, o.id, 'Afgerond'); await after('Opdracht #' + o.id + ' afgerond'); } catch (e) { $('btn-done').disabled = false; }
+  };
   if ($('btn-edit')) $('btn-edit').onclick = () => { mode = 'edit'; renderList(); renderForm(o); };
   $('detail').querySelectorAll('.statusset button').forEach((b) => (b.onclick = async () => {
     if (b.dataset.s === o.status) return;
