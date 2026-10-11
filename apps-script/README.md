@@ -41,6 +41,10 @@ Installeer de gratis app **ntfy** op je telefoon, abonneer je op een lang, moeil
 - De pagina ververst elke 30 seconden.
 - Alle gegevens staan in de Sheet. Pas die niet met de hand aan terwijl mensen de app gebruiken.
 
+## Op de telefoon
+
+De app werkt op de telefoon: je ziet eerst de lijst, en een aangetikte opdracht opent op een eigen scherm met een knop terug. Zet de web-app-link op je beginscherm (Safari: Deel > Zet op beginscherm; Chrome: menu > Toevoegen aan startscherm), dan open je hem als een app.
+
 ## Eigen domein
 
 Apps Script draait op een script.google.com-adres. Wil je dakru.nl gebruiken, zet dan bij je domeinbeheerder een doorverwijzing van bijvoorbeeld `service.dakru.nl` naar de web-app-URL.
