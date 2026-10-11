@@ -76,6 +76,12 @@ textarea{min-height:88px;resize:vertical}
 .linkbtn{margin-left:auto;border:0;background:none;color:var(--danger);font:600 12px var(--f-body);cursor:pointer;padding:0}
 .detail{display:flex;flex-direction:column;gap:20px}
 .empty{color:var(--muted);text-align:center;padding:32px 8px;border:1px dashed var(--line);border-radius:8px}
+.modal{position:fixed;inset:0;background:rgba(10,14,20,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.modal-box{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:20px;max-width:440px;width:100%;max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:14px}
+.modal-box ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px}
+.topic{font-family:var(--f-mono);font-size:14px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;overflow-wrap:anywhere;user-select:all}
+.stores{display:flex;flex-wrap:wrap;gap:8px}
+.stores a{color:var(--accent);font-weight:600}
 .confirm{border:1px solid var(--danger);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .login{max-width:440px;margin:6vh auto 0;display:flex;flex-direction:column;gap:20px}
 .login h1{font-family:var(--f-display);font-size:40px;text-transform:uppercase;margin:0;line-height:1}
@@ -102,7 +108,7 @@ textarea{min-height:88px;resize:vertical}
 <div class="wrap">
   <header class="top">
     <div class="brand"><h1>Standservice</h1></div>
-    <div class="who" id="who" hidden><span class="role" id="who-role"></span><button class="btn ghost small" id="btn-out">Uitloggen</button></div>
+    <div class="who" id="who" hidden><span class="role" id="who-role"></span><button class="btn ghost small" id="btn-notify" hidden>Meldingen</button><button class="btn ghost small" id="btn-out">Uitloggen</button></div>
   </header>
 
   <section id="view-login" class="panel login">
@@ -126,6 +132,14 @@ textarea{min-height:88px;resize:vertical}
       <div class="panel" id="detail"><div class="empty">Kies een opdracht in de lijst, of dien een nieuwe in.</div></div></div>
     </div>
   </section>
+</div>
+<div class="modal" id="notify-modal" hidden role="dialog" aria-modal="true" aria-labelledby="notify-title">
+  <div class="modal-box">
+    <h2 id="notify-title">Meldingen aanzetten</h2>
+    <p class="sub" style="margin:0">Krijg een melding op je telefoon zodra er een nieuwe opdracht of een opmerking van de klant binnenkomt.</p>
+    <div id="notify-body"></div>
+    <div class="btns"><button class="btn" id="btn-notify-done">Klaar, staat aan</button><button class="btn ghost" id="btn-notify-later">Later</button></div>
+  </div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -185,8 +199,45 @@ function start() {
   $('btn-new').hidden = staff();
   mode = 'view'; selected = null; current = null; showDetail(false);
   filter = staff() ? 'open' : 'alle';
+  $('btn-notify').hidden = !staff();
   refresh();
+  if (staff()) maybeAskNotify();
 }
+
+// ---------- Meldingen-popup voor het team ----------
+const NOTIFY_KEY = 'standservice-meldingen';
+const storeGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const storeSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+
+async function openNotify() {
+  $('notify-body').innerHTML = '<p class="meta">Laden…</p>';
+  $('notify-modal').hidden = false;
+  let setup = null;
+  try { setup = await call('getNotifySetup', session.token); } catch (e) { $('notify-modal').hidden = true; return; }
+  if (!setup || !setup.topic) {
+    $('notify-body').innerHTML = '<p class="text">Meldingen zijn nog niet ingesteld. Vraag de beheerder om de Script-eigenschap NTFY_TOPIC in te vullen.</p>';
+    return;
+  }
+  const t = esc(setup.topic);
+  $('notify-body').innerHTML = `<ol>
+    <li>Installeer de gratis app <b>ntfy</b>:
+      <div class="stores"><a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank" rel="noopener">iPhone</a>
+      <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank" rel="noopener">Android</a></div></li>
+    <li>Open ntfy, tik op <b>+</b> en vul dit onderwerp in:
+      <div class="topic" id="notify-topic">${t}</div>
+      <div class="btns" style="margin-top:8px"><button class="btn ghost small" id="btn-copy-topic">Kopieer onderwerp</button></div></li>
+    <li>Tik op <b>Abonneren</b>. Klaar: vanaf nu krijg je een melding bij elke nieuwe opdracht.</li>
+  </ol>`;
+  $('btn-copy-topic').onclick = async () => {
+    try { await navigator.clipboard.writeText(setup.topic); toast('Onderwerp gekopieerd'); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('notify-topic')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast('Kopieer de geselecteerde tekst'); }
+  };
+}
+function maybeAskNotify() { if (!storeGet(NOTIFY_KEY)) openNotify(); }
+$('btn-notify').onclick = openNotify;
+$('btn-notify-done').onclick = () => { storeSet(NOTIFY_KEY, 'aan'); $('notify-modal').hidden = true; };
+$('btn-notify-later').onclick = () => { $('notify-modal').hidden = true; };
+$('notify-modal').addEventListener('click', (e) => { if (e.target === $('notify-modal')) $('notify-modal').hidden = true; });
 
 // ---------- Gegevens ----------
 async function refresh() {
