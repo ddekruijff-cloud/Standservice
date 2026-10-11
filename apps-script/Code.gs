@@ -1,6 +1,7 @@
 /**
  * Standservice in Google Apps Script.
- * Database: de Google Sheet waar dit script aan vastzit, met de tabbladen "Opdrachten" en "Tijdlijn".
+ * Database: een Google Sheet met de tabbladen "Opdrachten" en "Tijdlijn". Dat is de Sheet waar dit script aan
+ * vastzit, of anders een Sheet die setup() zelf aanmaakt (het ID komt dan in eigenschap SHEET_ID).
  * Inlogcodes staan in de Script-eigenschappen (Projectinstellingen), niet in deze code:
  *   CODE_KLANT, CODE_TEAM, CODE_ADMIN   – de drie inlogcodes, elk anders (controleer met checkSetup)
  *   NTFY_TOPIC                           – optioneel: ntfy.sh-onderwerp voor een telefoonmelding bij een nieuwe opdracht
@@ -28,6 +29,7 @@ function doGet() {
 function setup() {
   sheet_('Opdrachten', ORDER_HEADERS);
   sheet_('Tijdlijn', EVENT_HEADERS);
+  console.log('Klaar. Gegevens staan in: ' + spreadsheet_().getUrl());
 }
 
 // ---------- Inloggen ----------
@@ -242,8 +244,22 @@ function rows_(name, headers) {
   });
 }
 
+// De Sheet met de gegevens: de Sheet waar het script aan vastzit, of anders de Sheet uit eigenschap SHEET_ID.
+// Bestaat die nog niet, dan maakt het script zelf een Sheet "Standservice gegevens" aan in je Drive.
+function spreadsheet_() {
+  const active = SpreadsheetApp.getActive();
+  if (active) return active;
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('SHEET_ID');
+  if (id) return SpreadsheetApp.openById(id.trim());
+  const created = SpreadsheetApp.create('Standservice gegevens');
+  props.setProperty('SHEET_ID', created.getId());
+  console.log('Nieuwe Sheet aangemaakt: ' + created.getUrl());
+  return created;
+}
+
 function sheet_(name, headers) {
-  const ss = SpreadsheetApp.getActive();
+  const ss = spreadsheet_();
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);

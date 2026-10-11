@@ -4,8 +4,8 @@ Dezelfde app als de Next.js-versie, maar volledig in je eigen Google-account: ee
 
 ## Installeren (eenmalig, ongeveer tien minuten)
 
-1. Maak een nieuwe Google Sheet aan, bijvoorbeeld "Standservice".
-2. Kies in de Sheet **Extensies > Apps Script**.
+1. Maak een nieuwe Google Sheet aan, bijvoorbeeld "Standservice", en kies in de Sheet **Extensies > Apps Script**. Begon je los op script.google.com, dan kan dat ook: `setup` maakt dan zelf een Sheet "Standservice gegevens" aan in je Drive.
+2. Open het script.
 3. Vervang de inhoud van `Code.gs` door [Code.gs](Code.gs).
 4. Klik op **+** naast Bestanden, kies **HTML**, noem het bestand `Index` en plak [Index.html](Index.html) erin.
 5. Ga naar **Projectinstellingen** (tandwiel) en voeg onder **Script-eigenschappen** toe:
