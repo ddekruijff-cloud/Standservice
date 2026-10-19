@@ -9,6 +9,9 @@
  *   NTFY_TOPIC_KLANT                     – optioneel: ntfy.sh-onderwerp voor de klant (statuswijziging, opmerking van het team)
  */
 
+// Verhoog dit bij elke wijziging; dezelfde waarde staat bovenaan Index.html. checkSetup vergelijkt ze.
+const VERSION = '2026-10-19';
+
 const ROLES = {
   klant: { name: 'Klant', prop: 'CODE_KLANT' },
   team: { name: 'Serviceteam', prop: 'CODE_TEAM' },
@@ -82,6 +85,22 @@ function checkSetup() {
   });
   const values = Object.keys(codes).map(function (r) { return codes[r]; });
   if (new Set(values).size !== values.length) console.log('Let op: twee accounts hebben dezelfde code.');
+  const props = PropertiesService.getScriptProperties();
+  const sheetId = (props.getProperty('SHEET_ID') || '').trim();
+  try {
+    console.log('Sheet: ' + spreadsheet_().getName() + (sheetId ? ' (via SHEET_ID)' : ''));
+  } catch (e) {
+    console.log('Sheet: NIET BEREIKBAAR (' + e.message + '). Controleer SHEET_ID.');
+  }
+  const mail = (props.getProperty('TEAM_EMAIL') || '').trim();
+  console.log('TEAM_EMAIL: ' + (!mail ? 'niet ingesteld' : /^[^@\s,]+@[^@\s,]+\.[^@\s,]+(\s*,\s*[^@\s,]+@[^@\s,]+\.[^@\s,]+)*$/.test(mail) ? 'ingesteld' : 'ONGELDIG, alleen e-mailadressen gescheiden door komma'));
+  const topic = (props.getProperty('NTFY_TOPIC') || '').trim();
+  console.log('NTFY_TOPIC: ' + (!topic ? 'niet ingesteld' : /^[A-Za-z0-9_-]{1,64}$/.test(topic) ? 'ingesteld' : 'ONGELDIG, alleen letters, cijfers, - en _'));
+  let page = '';
+  try { page = HtmlService.createHtmlOutputFromFile('Index').getContent(); } catch (e) {}
+  const m = page.match(/standservice-versie (\S+)/);
+  console.log('Code.gs versie ' + VERSION + ', Index.html versie ' + (m ? m[1] : 'onbekend') +
+    (m && m[1] === VERSION ? ' (gelijk)' : '. LET OP: plak de nieuwste Index.html'));
   CacheService.getScriptCache().remove('failed');
   console.log('Teller voor mislukte inlogpogingen is op nul gezet.');
 }

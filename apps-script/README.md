@@ -14,6 +14,8 @@ Dezelfde app als de Next.js-versie, maar volledig in je eigen Google-account: ee
    | `CODE_KLANT` | bijvoorbeeld `4821` | de klant |
    | `CODE_TEAM` | bijvoorbeeld `8756` | het serviceteam |
    | `CODE_ADMIN` | bijvoorbeeld `3390` | de beheerder |
+   | `SHEET_ID` | het ID uit de link van de Sheet, het stuk tussen `/d/` en `/edit` (alleen nodig als het script niet vanuit de Sheet is gemaakt) | |
+   | `TEAM_EMAIL` | bijvoorbeeld `service@dakru.nl` (optioneel, zie Meldingen zonder app) | het serviceteam |
    | `NTFY_TOPIC` | bijvoorbeeld `standservice-team-8f3k2q9x` (optioneel, zie Telefoonmeldingen) | het serviceteam |
 
    Vul bij Waarde alleen de code zelf in, zonder andere tekst. Geef elk account een andere code.
@@ -25,7 +27,7 @@ Na een wijziging in de code kies je **Implementeren > Implementaties beheren**, 
 
 ## Code werkt niet?
 
-1. Kies in de editor de functie `checkSetup` en klik op **Uitvoeren**. Het logboek laat zien welke codes zijn ingesteld en zet de teller voor mislukte pogingen op nul.
+1. Kies in de editor de functie `checkSetup` en klik op **Uitvoeren**. Het logboek laat zien welke codes zijn ingesteld, of de Sheet bereikbaar is, of `TEAM_EMAIL` en `NTFY_TOPIC` kloppen en of `Code.gs` en `Index.html` dezelfde versie hebben. Ook zet het de teller voor mislukte pogingen op nul.
 2. Heb je de code in de editor aangepast? Kies dan **Implementeren > Implementaties beheren**, potloodje, versie **Nieuwe versie**. Anders draait de web-app nog op de oude code.
 
 ## Meldingen zonder app
